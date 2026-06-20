@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Margin — Lecture Notes Cleaner</title>
+<meta name="description" content="Paste messy lecture notes, get them cleaned into readable, structured notes instantly. Free, runs in your browser, nothing stored." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF8F2;
+    --paper-line: #A8BFE0;
+    --ink: #2B2B33;
+    --ink-soft: #5B5B68;
+    --margin-red: #C0432F;
+    --highlight: #FFE066;
+    --highlight-soft: rgba(255,224,102,0.55);
+    --hairline: #E3DCCB;
+    --card: #FFFFFF;
+
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Spectral', Georgia, serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 32px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 1080px;
+  }
+
+  /* ===== Header ===== */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .brand {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+
+  .brand .dot { color: var(--margin-red); }
+
+  .tagline {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--ink-soft);
+    max-width: 36ch;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* ===== Toolbar ===== */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .stats {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .stats strong { color: var(--ink); }
+
+  .actions { display: flex; gap: 8px; }
+
+  button {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--ink);
+    background: var(--card);
+    color: var(--ink);
+    padding: 9px 16px;
+    transition: background 0.15s ease, transform 0.1s ease, color 0.15s ease;
+  }
+
+  button:hover { background: var(--ink); color: var(--paper); }
+  button:active { transform: scale(0.98); }
+
+  button.primary {
+    background: var(--margin-red);
+    border-color: var(--margin-red);
+    color: var(--paper);
+  }
+
+  button.primary:hover { background: #A53626; border-color: #A53626; }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  button:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--margin-red);
+    outline-offset: 2px;
+  }
+
+  /* ===== Panes ===== */
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--card);
+    box-shadow: 0 1px 3px rgba(43,43,51,0.06);
+  }
+
+  .pane {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 480px;
+  }
+
+  .pane.raw { border-right: 1px dashed var(--hairline); }
+
+  .pane-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    padding: 14px 20px 10px;
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .pane-label .pill {
+    font-size: 10px;
+    background: var(--hairline);
+    color: var(--ink-soft);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  #raw-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink);
+    padding: 18px 20px 24px;
+    width: 100%;
+  }
+
+  #raw-input::placeholder { color: #B9B2A0; font-style: italic; }
+
+  .clean-output {
+    flex: 1;
+    padding: 18px 24px 28px;
+    overflow-y: auto;
+    font-size: 15px;
+    line-height: 1.85;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 30px,
+      var(--paper-line) 31px
+    );
+    background-position: 0 8px;
+  }
+
+  .clean-output.empty {
+    background-image: none;
+    color: #B9B2A0;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .clean-output h3 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    margin: 20px 0 8px;
+    padding-left: 14px;
+    border-left: 3px solid var(--margin-red);
+    position: relative;
+  }
+
+  .clean-output h3:first-child { margin-top: 0; }
+
+  .clean-output p {
+    margin-bottom: 4px;
+  }
+
+  .clean-output ul {
+    list-style: none;
+    margin: 4px 0 4px 4px;
+  }
+
+  .clean-output li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 2px;
+  }
+
+  .clean-output li::before {
+    content: "–";
+    position: absolute;
+    left: 0;
+    color: var(--margin-red);
+    font-weight: 700;
+  }
+
+  .term {
+    background-image: linear-gradient(transparent 58%, var(--highlight-soft) 58%, var(--highlight-soft) 92%, transparent 92%);
+    padding: 0 1px;
+    font-weight: 600;
+  }
+
+  /* ===== Footer / mandatory bits ===== */
+  footer {
+    width: 100%;
+    margin-top: 32px;
+    padding-top: 22px;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .built-by {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+
+  .built-by:hover { background: #44444F; }
+  .built-by::after { content: "→"; color: var(--highlight); }
+
+  .author-line {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  .author-line strong { color: var(--ink); font-weight: 700; }
+  .author-line a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); }
+
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 760px) {
+    .panes { grid-template-columns: 1fr; }
+    .pane.raw { border-right: none; border-bottom: 1px dashed var(--hairline); }
+    .pane { min-height: 320px; }
+    .tagline { text-align: left; }
+    header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">margin<span class="dot">.</span></div>
+    <p class="tagline">Paste your raw lecture notes on the left. Get structured, readable notes on the right. Nothing leaves your browser.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="stats" id="stats">Paste your notes to begin</div>
+    <div class="actions">
+      <button id="sample-btn">Try a sample</button>
+      <button id="clear-btn">Clear</button>
+      <button class="primary" id="clean-btn">Clean my notes</button>
+    </div>
+  </div>
+
+  <div class="panes">
+    <div class="pane raw">
+      <div class="pane-label">
+        <span>Raw notes</span>
+        <span class="pill" id="word-count">0 words</span>
+      </div>
+      <textarea id="raw-input" placeholder="e.g. ok so today we're covering cell division mitosis is when a cell splits into two identical daughter cells it happens in 4 main phases first is prophase where chromosomes condense second metaphase chromosomes line up..."></textarea>
+    </div>
+    <div class="pane clean">
+      <div class="pane-label">
+        <span>Cleaned notes</span>
+        <span class="pill" id="clean-status">waiting</span>
+      </div>
+      <div class="clean-output empty" id="clean-output">Your cleaned notes will appear here →</div>
+    </div>
+  </div>
+
+  <footer>
+    <a class="built-by" href="https://digitalheroesco.com" target="_blank" rel="noopener">Built for Digital Heroes</a>
+    <p class="author-line">
+      Made by <strong>Atharva Rahul Amrute</strong> — <a href="mailto:atharvaamrute68@gmail.com">atharvaamrute68@gmail.com</a>
+    </p>
+  </footer>
+</div>
+
+<div class="toast" id="toast">Copied cleaned notes</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    raw: $("raw-input"),
+    output: $("clean-output"),
+    cleanBtn: $("clean-btn"),
+    clearBtn: $("clear-btn"),
+    sampleBtn: $("sample-btn"),
+    stats: $("stats"),
+    wordCount: $("word-count"),
+    cleanStatus: $("clean-status"),
+    toast: $("toast"),
+  };
+
+  const SAMPLE = `ok so today we're covering cell division. mitosis is when a cell splits into two identical daughter cells it happens in 4 main phases. first is prophase where chromosomes condense and become visible, the nuclear envelope breaks down. second is metaphase chromosomes line up in the middle of the cell along whats called the metaphase plate. third anaphase the chromosomes get pulled apart to opposite ends of the cell. fourth telophase two new nuclei form and the cell starts to split.
+
+also important meiosis is different from mitosis, meiosis produces four daughter cells not two and they're not identical, they have half the chromosomes, this is how sex cells like sperm and egg cells are made.
+
+key vocab cytokinesis is the actual physical splitting of the cell after mitosis. centromere is the region where chromosomes are held together. spindle fibers pull chromosomes apart during anaphase.
+
+quick note professor said mitosis question will def be on the midterm, know the 4 phases in order`;
+
+  const FILLER_PHRASES = ["um,", "uh,", "you know,", "i mean,", "basically,", "literally,", "kind of", "sort of", "ok so", "okay so", "so yeah,"];
+
+  const TRANSITION_MARKERS = [
+    "first", "firstly", "second", "secondly", "third", "thirdly", "fourth", "fourthly",
+    "fifth", "next", "then", "also", "additionally", "another", "lastly", "finally",
+    "moreover", "furthermore"
+  ];
+
+  // Heading triggers: matched only at the start of a paragraph block.
+  // Triggers with a fixed label become that label; others derive the heading
+  // from the topic phrase that follows, and that phrase is removed from the body
+  // (it's a label, not content, so it must not also appear in the paragraph).
+  const HEADING_TRIGGERS = [
+    { re: /^(ok(ay)? so )?today we'?re covering\s+/i, label: null },
+    { re: /^(ok(ay)? so )?today we are covering\s+/i, label: null },
+    { re: /^moving on to\s+/i, label: null },
+    { re: /^next topic[:\-,]?\s*/i, label: null },
+    { re: /^let'?s talk about\s+/i, label: null },
+    { re: /^now let'?s discuss\s+/i, label: null },
+    { re: /^key vocab(ulary)?\b[:\-,]?\s*/i, label: "Key Vocabulary" },
+    { re: /^important terms?\b[:\-,]?\s*/i, label: "Important Terms" },
+    { re: /^quick note[:\-,]?\s*/i, label: "Note" },
+    { re: /^important note[:\-,]?\s*/i, label: "Note" },
+  ];
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function stripStutter(text) {
+    // Collapse immediate word repeats from fast typing: "the the cell" -> "the cell"
+    return text.replace(/\b(\w+)(\s+\1\b)+/gi, "$1");
+  }
+
+  function stripFillerPhrases(text) {
+    let t = text;
+    FILLER_PHRASES.forEach(fw => {
+      const safe = fw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(^|\\s)${safe}(\\s|$)`, "gi");
+      t = t.replace(re, " ");
+    });
+    return t.replace(/\s{2,}/g, " ").trim();
+  }
+
+  function splitIntoSentences(text) {
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    const parts = cleaned.split(/(?<=[.!?])\s+(?=[A-Za-z0-9])/);
+    return parts.map(s => s.trim()).filter(Boolean);
+  }
+
+  function capitalizeSentence(s) {
+    let t = s.trim();
+    if (!t) return t;
+    if (!/[.!?]$/.test(t)) t += ".";
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    t = t.replace(/\bi\b/g, "I");
+    return t;
+  }
+
+  function titleCase(s) {
+    const small = new Set(["a", "an", "the", "of", "in", "on", "and", "or", "to", "for", "with"]);
+    return s.split(" ").map((w, i) => {
+      const lw = w.toLowerCase();
+      if (i > 0 && small.has(lw)) return lw;
+      return w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w;
+    }).join(" ");
+  }
+
+  function detectsListMarker(sentenceLower) {
+    const firstWord = sentenceLower.split(/[\s,]+/)[0].replace(/[^a-z]/g, "");
+    return TRANSITION_MARKERS.includes(firstWord);
+  }
+
+  function stripListMarker(sentence) {
+    // Handle "first is X" / "second is Y" -> reorder to "X is..." for readability.
+    const copulaMatch = sentence.match(/^(\w+)\s+(is|are)\s+(.+)$/i);
+    if (copulaMatch && TRANSITION_MARKERS.includes(copulaMatch[1].toLowerCase())) {
+      const verb = copulaMatch[2];
+      const rest = copulaMatch[3];
+      const restWords = rest.split(/\s+/);
+      const subject = restWords[0];
+      const tail = restWords.slice(1).join(" ");
+      return `${subject.charAt(0).toUpperCase() + subject.slice(1)} ${verb} ${tail}`.trim();
+    }
+    // Otherwise just remove the leading transition word + following comma/space.
+    const m = sentence.match(/^(\w+)[\s,]+/);
+    if (!m) return sentence;
+    const word = m[1].toLowerCase();
+    if (TRANSITION_MARKERS.includes(word)) {
+      return sentence.slice(m[0].length);
+    }
+    return sentence;
+  }
+
+  function findKeyTerms(sentences) {
+    const defPattern = /\b([a-z][a-z\s-]{2,28}?)\s+(is|are|means|refers to)\s+(the|a|an|when|where)\b/i;
+    const found = new Set();
+    sentences.forEach(s => {
+      const m = s.match(defPattern);
+      if (m) {
+        const term = m[1].trim();
+        if (term.split(" ").length <= 3 && term.length > 2) {
+          found.add(term.toLowerCase());
+        }
+      }
+    });
+    return found;
+  }
+
+  function highlightTerms(html, terms) {
+    if (terms.size === 0) return html;
+    let result = html;
+    terms.forEach(term => {
+      const safe = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`\\b(${safe})\\b`, "i");
+      result = result.replace(re, '<span class="term">$1</span>');
+    });
+    return result;
+  }
+
+  function extractHeadingFromBlock(blockText) {
+    for (const trigger of HEADING_TRIGGERS) {
+      const m = blockText.match(trigger.re);
+      if (m) {
+        const remainder = blockText.slice(m[0].length).trim();
+        if (trigger.label) {
+          return { heading: trigger.label, remainder };
+        }
+        // Topic-shift triggers (e.g. "today we're covering X"): X is the topic label,
+        // so it becomes the heading and is removed from the body to avoid duplication.
+        const topicMatch = remainder.match(/^[^.,;:!?]+/);
+        const topicPhrase = topicMatch ? topicMatch[0].trim() : remainder;
+        const restAfterTopic = remainder.slice(topicPhrase.length).replace(/^[.,;:!?]+\s*/, "");
+        return { heading: titleCase(topicPhrase), remainder: restAfterTopic };
+      }
+    }
+    return null;
+  }
+
+  function buildStructuredNotes(rawText) {
+    const blocks = rawText.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    let html = "";
+
+    blocks.forEach(block => {
+      let working = stripFillerPhrases(stripStutter(block));
+
+      const headingResult = extractHeadingFromBlock(working);
+      let bodyText = working;
+      if (headingResult) {
+        html += `<h3>${escapeHtml(headingResult.heading)}</h3>`;
+        bodyText = headingResult.remainder;
+      }
+
+      const sentences = splitIntoSentences(bodyText);
+      if (sentences.length === 0) return;
+
+      const keyTerms = findKeyTerms(sentences);
+
+      let listBuffer = [];
+      let paraBuffer = [];
+
+      function flushPara() {
+        if (paraBuffer.length) {
+          let text = paraBuffer.join(" ");
+          text = escapeHtml(text);
+          text = highlightTerms(text, keyTerms);
+          html += `<p>${text}</p>`;
+          paraBuffer = [];
+        }
+      }
+
+      function flushList() {
+        if (listBuffer.length) {
+          html += "<ul>" + listBuffer.map(item => {
+            let text = escapeHtml(item);
+            text = highlightTerms(text, keyTerms);
+            return `<li>${text}</li>`;
+          }).join("") + "</ul>";
+          listBuffer = [];
+        }
+      }
+
+      sentences.forEach((rawSentence) => {
+        const lower = rawSentence.toLowerCase();
+        if (detectsListMarker(lower)) {
+          flushPara();
+          const stripped = stripListMarker(rawSentence);
+          listBuffer.push(capitalizeSentence(stripped));
+        } else {
+          flushList();
+          paraBuffer.push(capitalizeSentence(rawSentence));
+        }
+      });
+
+      flushPara();
+      flushList();
+    });
+
+    return html;
+  }
+
+  function updateWordCount() {
+    const text = els.raw.value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    els.wordCount.textContent = `${words} word${words === 1 ? "" : "s"}`;
+    els.cleanBtn.disabled = words === 0;
+  }
+
+  function clean() {
+    const raw = els.raw.value.trim();
+    if (!raw) return;
+
+    els.cleanStatus.textContent = "cleaned";
+    const html = buildStructuredNotes(raw);
+
+    if (!html.trim()) {
+      els.output.className = "clean-output empty";
+      els.output.textContent = "Couldn't find clear structure — try adding paragraph breaks between topics.";
+      return;
+    }
+
+    els.output.className = "clean-output";
+    els.output.innerHTML = html;
+
+    const wordsBefore = raw.split(/\s+/).length;
+    const wordsAfter = els.output.textContent.trim().split(/\s+/).length;
+    const reduction = wordsBefore > 0 ? Math.round((1 - wordsAfter / wordsBefore) * 100) : 0;
+    els.stats.innerHTML = `<strong>${wordsBefore}</strong> words in → <strong>${wordsAfter}</strong> words out${reduction > 0 ? ` (${reduction}% tighter)` : ""}`;
+  }
+
+  function clearAll() {
+    els.raw.value = "";
+    els.output.className = "clean-output empty";
+    els.output.textContent = "Your cleaned notes will appear here →";
+    els.cleanStatus.textContent = "waiting";
+    els.stats.textContent = "Paste your notes to begin";
+    updateWordCount();
+    els.raw.focus();
+  }
+
+  function loadSample() {
+    els.raw.value = SAMPLE;
+    updateWordCount();
+    clean();
+  }
+
+  function copyClean() {
+    const text = els.output.innerText || els.output.textContent;
+    if (!text || els.output.classList.contains("empty")) return;
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("Copied cleaned notes");
+    }).catch(() => {
+      showToast("Could not copy — select manually");
+    });
+  }
+
+  function showToast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => els.toast.classList.remove("show"), 1700);
+  }
+
+  els.raw.addEventListener("input", updateWordCount);
+  els.cleanBtn.addEventListener("click", clean);
+  els.clearBtn.addEventListener("click", clearAll);
+  els.sampleBtn.addEventListener("click", loadSample);
+  els.output.addEventListener("click", copyClean);
+  els.output.title = "Click to copy";
+  els.output.style.cursor = "pointer";
+
+  updateWordCount();
+})();
+</script>
+</body>
+</html>
